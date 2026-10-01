@@ -4,6 +4,7 @@ export type ActionName = "accept_handoff" | "resolve_handoff" | "return_to_bot" 
 export interface DashboardRequest { view: DashboardView; params?: Record<string, unknown> }
 export interface DashboardResponse<T = unknown> { ok: boolean; view?: string; data?: T; page?: { limit: number; offset: number; has_more: boolean }; error?: string }
 export interface ActionResponse { ok: boolean; action?: ActionName; request_key?: string; applied_rows?: number; already_applied?: boolean; error?: string }
+export interface AuthResponse { ok: boolean; session_token?: string; csrf_token?: string; expires_at?: string; staff?: { id: number; display_name: string; role: "admin" | "agent" | "viewer" }; error?: string }
 
 const baseUrl = (import.meta.env.VITE_N8N_PROXY_URL as string | undefined)?.replace(/\/$/, "");
 export async function read711<T>(request: DashboardRequest): Promise<DashboardResponse<T>> {
@@ -19,4 +20,10 @@ export async function write711(action: ActionName, params: Record<string, unknow
   const payload = (await response.json()) as ActionResponse;
   if (response.status === 401) window.location.assign("/login");
   return payload;
+}
+
+export async function auth711(action: "login" | "logout", params: Record<string, unknown> = {}): Promise<AuthResponse> {
+  if (!baseUrl) return { ok: false, error: "invalid credentials" };
+  const response = await fetch(`${baseUrl}/api/711/auth`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, ...params }), credentials: "include" });
+  return (await response.json()) as AuthResponse;
 }

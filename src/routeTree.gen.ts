@@ -15,6 +15,7 @@ import { Route as ConversationsRouteImport } from './routes/conversations'
 import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as EnquiriesRouteImport } from './routes/enquiries'
 import { Route as FollowUpsRouteImport } from './routes/follow-ups'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as OffersRouteImport } from './routes/offers'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RoomsRouteImport } from './routes/rooms'
@@ -50,6 +51,11 @@ const FollowUpsRoute = FollowUpsRouteImport.update({
   path: '/follow-ups',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OffersRoute = OffersRouteImport.update({
   id: '/offers',
   path: '/offers',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/customers': typeof CustomersRoute
   '/enquiries': typeof EnquiriesRoute
   '/follow-ups': typeof FollowUpsRoute
+  '/login': typeof LoginRoute
   '/offers': typeof OffersRoute
   '/reports': typeof ReportsRoute
   '/rooms': typeof RoomsRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByTo {
   '/customers': typeof CustomersRoute
   '/enquiries': typeof EnquiriesRoute
   '/follow-ups': typeof FollowUpsRoute
+  '/login': typeof LoginRoute
   '/offers': typeof OffersRoute
   '/reports': typeof ReportsRoute
   '/rooms': typeof RoomsRoute
@@ -103,6 +111,7 @@ export interface FileRoutesById {
   '/customers': typeof CustomersRoute
   '/enquiries': typeof EnquiriesRoute
   '/follow-ups': typeof FollowUpsRoute
+  '/login': typeof LoginRoute
   '/offers': typeof OffersRoute
   '/reports': typeof ReportsRoute
   '/rooms': typeof RoomsRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/enquiries'
     | '/follow-ups'
+    | '/login'
     | '/offers'
     | '/reports'
     | '/rooms'
@@ -129,6 +139,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/enquiries'
     | '/follow-ups'
+    | '/login'
     | '/offers'
     | '/reports'
     | '/rooms'
@@ -141,6 +152,7 @@ export interface FileRouteTypes {
     | '/customers'
     | '/enquiries'
     | '/follow-ups'
+    | '/login'
     | '/offers'
     | '/reports'
     | '/rooms'
@@ -154,6 +166,7 @@ export interface RootRouteChildren {
   CustomersRoute: typeof CustomersRoute
   EnquiriesRoute: typeof EnquiriesRoute
   FollowUpsRoute: typeof FollowUpsRoute
+  LoginRoute: typeof LoginRoute
   OffersRoute: typeof OffersRoute
   ReportsRoute: typeof ReportsRoute
   RoomsRoute: typeof RoomsRoute
@@ -204,6 +217,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FollowUpsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/offers': {
       id: '/offers'
       path: '/offers'
@@ -242,6 +262,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomersRoute: CustomersRoute,
   EnquiriesRoute: EnquiriesRoute,
   FollowUpsRoute: FollowUpsRoute,
+  LoginRoute: LoginRoute,
   OffersRoute: OffersRoute,
   ReportsRoute: ReportsRoute,
   RoomsRoute: RoomsRoute,
