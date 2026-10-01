@@ -14,16 +14,16 @@ import {
 } from "lucide-react";
 
 const NAV = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/customers", label: "Customers", icon: UsersRound },
-  { to: "/conversations", label: "WhatsApp Conversations", icon: MessageSquare },
+  { to: "/", label: "Inbox & operations", icon: LayoutDashboard },
+  { to: "/conversations", label: "Conversations", icon: MessageSquare },
   { to: "/enquiries", label: "Enquiries", icon: ChartPie },
-  { to: "/offers", label: "Offers", icon: Tag },
-  { to: "/buffet", label: "Weekly Buffet", icon: UtensilsCrossed },
-  { to: "/rooms", label: "Rooms & Hotel", icon: BedDouble },
   { to: "/follow-ups", label: "Follow-ups", icon: Sparkles },
-  { to: "/reports", label: "Reports", icon: FileBarChart },
-  { to: "/settings", label: "Settings", icon: Cog },
+  { to: "/offers", label: "Offers", icon: Tag },
+  { to: "/buffet", label: "Buffet content", icon: UtensilsCrossed },
+  { to: "/rooms", label: "Rooms & hotel", icon: BedDouble },
+  { to: "/customers", label: "Customers", icon: UsersRound },
+  { to: "/reports", label: "Reports & audit", icon: FileBarChart },
+  { to: "/settings", label: "Config & health", icon: Cog },
 ] as const;
 
 export function SidebarContents({ onNavigate }: { onNavigate?: () => void }) {

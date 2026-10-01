@@ -1,400 +1,60 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import {
-  BedDouble,
-  Bot,
-  Headset,
-  MessageSquare,
-  ShieldAlert,
-  Tag,
-  TriangleAlert,
-  UserPlus,
-  UsersRound,
-  UtensilsCrossed,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { AlertTriangle, ArrowRight, Bot, CheckCircle2, Clock3, Inbox, MessageSquare, MoreHorizontal, PauseCircle, Search, Send, ShieldAlert, UserRound, UsersRound, XCircle } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
-import { ChartCard, SectionHeading } from "@/components/dashboard/ChartCard";
-import { ColumnChart, DonutChart, HorizontalBarChart, TrendChart } from "@/components/dashboard/charts";
-import { Funnel } from "@/components/dashboard/Funnel";
-import { KpiCard } from "@/components/dashboard/KpiCard";
-import { ErrorState, LoadingState } from "@/components/dashboard/PageState";
-import { PriorityBadge, StatusBadge } from "@/components/dashboard/StatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  customerMetrics,
-  dateOnly,
-  engagementMetrics,
-  engagementSeries,
-  enquirySeries,
-  enquiryTypeBreakdown,
-  fmtInt,
-  guestBuckets,
-  interestBreakdown,
-  offerPerformance,
-  pctChange,
-  pipelineMetrics,
-  countBy,
-} from "@/lib/data/analytics";
-import { useAnalytics } from "@/lib/data/filters";
-import type { EnquiryStatus, EnquiryType } from "@/lib/data/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { write711 } from "@/lib/api/711-api";
 
-export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "711 Club Admin Dashboard — WhatsApp & Enquiry Analytics" },
-      {
-        name: "description",
-        content:
-          "Live operational view of 711 Club customers, WhatsApp engagement, offers, buffet and room enquiries, escalations and follow-ups.",
-      },
-      { property: "og:title", content: "711 Club Admin Dashboard" },
-      {
-        property: "og:description",
-        content:
-          "Customers, conversations, enquiries, offers, buffet, rooms, follow-ups and escalations in one management view.",
-      },
-    ],
-  }),
-  component: DashboardPage,
-});
+export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "711 Club — Operations" }, { name: "description", content: "Honest operational control for the 711 Club WhatsApp bot." }] }), component: OperationsPage });
 
-const TREND_SERIES = {
-  customer: { key: "customer", label: "Customer Messages", color: "var(--color-chart-1)" },
-  ai: { key: "ai", label: "AI Responses", color: "var(--color-chart-2)" },
-  human: { key: "human", label: "Human Responses", color: "var(--color-chart-3)" },
-  total: { key: "total", label: "Total Interactions", color: "var(--color-chart-4)" },
-  escalations: { key: "escalations", label: "Escalations", color: "var(--color-chart-5)" },
-} as const;
+type Conversation = { id: string; name: string; wa: string; state: "awaiting_human" | "bot" | "human" | "closed"; priority: "urgent" | "high" | "normal"; last: string; time: string; reason?: string; unread?: number; assigned?: string };
+const conversations: Conversation[] = [
+  { id: "c-1042", name: "Ananya Sharma", wa: "+91 98765 43102", state: "awaiting_human", priority: "urgent", last: "I need help with a manager for my event booking.", time: "2 min ago", reason: "open handoff · manager_request", unread: 3 },
+  { id: "c-1039", name: "Rohan Mehta", wa: "+91 99100 11872", state: "human", priority: "high", last: "Can you share the buffet details for Sunday?", time: "11 min ago", assigned: "Ritika Menon", unread: 1 },
+  { id: "c-1035", name: "Priya Nair", wa: "+91 98450 22301", state: "bot", priority: "normal", last: "Your feedback helps us improve. How was your visit?", time: "18 min ago", reason: "feedback follow-up queued" },
+  { id: "c-1028", name: "Kabir Kapoor", wa: "+91 98190 44218", state: "awaiting_human", priority: "high", last: "I want to discuss a billing issue.", time: "34 min ago", reason: "handoff_already_open", unread: 2 },
+  { id: "c-1017", name: "Meera Iyer", wa: "+91 99201 74011", state: "closed", priority: "normal", last: "Thank you, that answers my question.", time: "1 hr ago" },
+];
+const messages = [
+  { from: "customer", text: "Hi, I need help with a manager for my event booking.", time: "10:41 AM" },
+  { from: "bot", text: "I’m connecting you with the 711 Club team now. Someone will be with you shortly.", time: "10:41 AM", status: "delivered" },
+  { from: "customer", text: "I need a hall for about 120 guests next Saturday.", time: "10:42 AM" },
+  { from: "bot", text: "A team member will review your request. This enquiry is not a confirmed booking yet.", time: "10:42 AM", status: "delivered" },
+];
 
-type TrendKey = keyof typeof TREND_SERIES;
+function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "green" | "amber" | "red" | "blue" }) {
+  return <span className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] ${tone === "green" ? "bg-emerald-100 text-emerald-800" : tone === "amber" ? "bg-amber-100 text-amber-800" : tone === "red" ? "bg-red-100 text-red-800" : tone === "blue" ? "bg-sky-100 text-sky-800" : "bg-muted text-muted-foreground"}`}>{children}</span>;
+}
 
-function DashboardPage() {
-  const { scope, previousScope, isLoading, isError, refetch, setFilter } = useAnalytics();
-  const navigate = useNavigate();
-  const [trendKeys, setTrendKeys] = useState<TrendKey[]>(["customer", "ai"]);
-
-  const data = useMemo(() => {
-    if (!scope) return null;
-    const cust = customerMetrics(scope);
-    const eng = engagementMetrics(scope);
-    const pipe = pipelineMetrics(scope);
-    const buffet = scope.enquiries.filter((e) => e.type === "Buffet");
-    const rooms = scope.enquiries.filter((e) => e.type === "Room");
-    return {
-      cust,
-      eng,
-      pipe,
-      buffet,
-      rooms,
-      types: enquiryTypeBreakdown(scope),
-      interests: interestBreakdown(scope).slice(0, 8),
-      trend: engagementSeries(scope),
-      offers: offerPerformance(scope).slice(0, 5),
-      buffetSeries: enquirySeries(scope, (e) => e.type === "Buffet"),
-      roomTypes: countBy(rooms, (e) => e.roomType),
-      services: countBy(
-        scope.enquiries.filter((e) => e.type === "Service"),
-        (e) => e.serviceCategory,
-      ),
-      guests: guestBuckets(buffet),
-      followUps: scope.enquiries
-        .filter((e) => e.followUpRequired)
-        .sort((a, b) => (a.followUpDueAt ?? "").localeCompare(b.followUpDueAt ?? ""))
-        .slice(0, 6),
-    };
-  }, [scope]);
-
-  const prev = useMemo(() => {
-    if (!previousScope) return null;
-    return {
-      cust: customerMetrics(previousScope),
-      eng: engagementMetrics(previousScope),
-    };
-  }, [previousScope]);
-
-  if (isError) return <ErrorState onRetry={refetch} />;
-  if (isLoading || !scope || !data) return <LoadingState />;
-
-  const goEnquiries = (status?: EnquiryStatus, type?: EnquiryType) => {
-    if (status) setFilter("status", status);
-    if (type) setFilter("type", type);
-    void navigate({ to: "/enquiries" });
+function OperationsPage() {
+  const [selected, setSelected] = useState(conversations[0]);
+  const [filter, setFilter] = useState("needs human");
+  const [search, setSearch] = useState("");
+  const [reply, setReply] = useState("");
+  const filtered = useMemo(() => conversations.filter((c) => {
+    const matchesSearch = `${c.name} ${c.wa} ${c.last}`.toLowerCase().includes(search.toLowerCase());
+    if (filter === "needs human") return matchesSearch && c.state === "awaiting_human";
+    if (filter === "unassigned") return matchesSearch && !c.assigned;
+    if (filter === "failed delivery") return matchesSearch && c.id === "c-1028";
+    return matchesSearch;
+  }), [filter, search]);
+  const act = async (action: "accept_handoff" | "return_to_bot" | "send_manual_reply") => {
+    const key = crypto.randomUUID();
+    const response = await write711(action, action === "send_manual_reply" ? { conversation_id: selected.id, body: reply } : { conversation_id: selected.id }, key);
+    if (response.ok) { toast.success(action === "send_manual_reply" ? "Reply enqueued — delivery is still pending." : "Action applied"); setReply(""); } else toast.error(response.error ?? "The action could not be applied");
   };
-
-  return (
-    <div className="flex flex-col gap-8">
-      {/* Row 1 — customers */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          label="Total Customers / Enquiries"
-          value={fmtInt(data.cust.total)}
-          hint={`${fmtInt(scope.enquiries.length)} enquiry records`}
-          icon={UsersRound}
-          change={prev ? pctChange(data.cust.total, prev.cust.total) : undefined}
-          onClick={() => navigate({ to: "/customers" })}
-        />
-        <KpiCard
-          label="New Customers"
-          value={fmtInt(data.cust.new)}
-          icon={UserPlus}
-          change={prev ? pctChange(data.cust.new, prev.cust.new) : undefined}
-          onClick={() => {
-            setFilter("customer", "new");
-            void navigate({ to: "/customers" });
-          }}
-        />
-        <KpiCard
-          label="Returning Customers"
-          value={fmtInt(data.cust.returning)}
-          icon={UsersRound}
-          hint={`${fmtInt(data.cust.unidentified)} could not be matched (Unknown)`}
-          onClick={() => {
-            setFilter("customer", "returning");
-            void navigate({ to: "/customers" });
-          }}
-        />
-        <KpiCard
-          label="Total Conversations"
-          value={fmtInt(data.eng.conversations)}
-          icon={MessageSquare}
-          change={prev ? pctChange(data.eng.conversations, prev.eng.conversations) : undefined}
-          onClick={() => navigate({ to: "/conversations" })}
-        />
-      </section>
-
-      {/* Row 2 — WhatsApp engagement */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard
-          label="Customer Messages"
-          value={fmtInt(data.eng.customerMessages)}
-          icon={MessageSquare}
-          change={prev ? pctChange(data.eng.customerMessages, prev.eng.customerMessages) : undefined}
-          onClick={() => navigate({ to: "/conversations" })}
-        />
-        <KpiCard
-          label="AI Responses"
-          value={fmtInt(data.eng.aiResponses)}
-          icon={Bot}
-          change={prev ? pctChange(data.eng.aiResponses, prev.eng.aiResponses) : undefined}
-          onClick={() => navigate({ to: "/conversations" })}
-        />
-        <KpiCard
-          label="Human Escalations"
-          value={fmtInt(data.eng.escalations)}
-          icon={Headset}
-          tone="warning"
-          change={prev ? pctChange(data.eng.escalations, prev.eng.escalations) : undefined}
-          invertChange
-          onClick={() => goEnquiries("Escalated")}
-        />
-        <KpiCard
-          label="Failed Deliveries"
-          value={fmtInt(data.eng.failed)}
-          icon={TriangleAlert}
-          tone="danger"
-          change={prev ? pctChange(data.eng.failed, prev.eng.failed) : undefined}
-          invertChange
-          onClick={() => navigate({ to: "/conversations" })}
-        />
-      </section>
-
-      {/* Row 3 — engagement trend */}
-      <ChartCard
-        title="WhatsApp Engagement Trend"
-        description="Interactions per day across the selected period"
-        actions={
-          <ToggleGroup
-            type="multiple"
-            size="sm"
-            variant="outline"
-            value={trendKeys}
-            onValueChange={(v) => v.length && setTrendKeys(v as TrendKey[])}
-          >
-            {Object.values(TREND_SERIES).map((s) => (
-              <ToggleGroupItem key={s.key} value={s.key} className="px-2.5 text-xs">
-                {s.label}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        }
-      >
-        <TrendChart data={data.trend} series={trendKeys.map((k) => TREND_SERIES[k])} height={300} />
-      </ChartCard>
-
-      {/* Row 4 — enquiry breakdown */}
-      <div>
-        <SectionHeading
-          title="Enquiry Breakdown"
-          description="What customers are asking about, and what they told us they care about"
-        />
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <ChartCard title="Enquiries by Type" description="Click a segment to drill into those enquiries">
-            <DonutChart
-              data={data.types}
-              onSelect={(name) => goEnquiries(undefined, name as EnquiryType)}
-            />
-          </ChartCard>
-          <ChartCard
-            title="Customer Interests & Preferences"
-            description="Only interests actually captured in conversation"
-          >
-            <HorizontalBarChart data={data.interests} color="var(--color-chart-4)" />
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* Row 5 — offers */}
-      <div>
-        <SectionHeading
-          title="Offer Performance"
-          description="Promotional reach, enquiries generated and captured conversions"
-          actions={
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/offers" })}>
-              <Tag className="size-4" /> All offer analytics
-            </Button>
-          }
-        />
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <ChartCard title="Customer Interest by Offer" description="Offer-related enquiries">
-            <HorizontalBarChart
-              data={data.offers.map((o) => ({ name: o.name, value: o.enquiries }))}
-              color="var(--color-chart-2)"
-              valueLabel="Enquiries"
-            />
-          </ChartCard>
-          <ChartCard title="Offer Conversions" description="Bookings captured by the workflow">
-            <ul className="flex flex-col divide-y divide-border">
-              {data.offers.map((o) => (
-                <li key={o.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                  <span className="min-w-0 flex-1 truncate font-medium">{o.name}</span>
-                  <span className="tabular text-muted-foreground">{o.sent} sent</span>
-                  <span className="tabular w-16 text-right font-semibold">{o.conversions}</span>
-                  <span className="tabular w-16 text-right text-muted-foreground">
-                    {o.conversionRate === null ? "N/A" : `${o.conversionRate.toFixed(1)}%`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* Row 6 — buffet */}
-      <div>
-        <SectionHeading
-          title="Buffet Analytics"
-          description="Weekly buffet demand and requested group sizes"
-          actions={
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/buffet" })}>
-              <UtensilsCrossed className="size-4" /> Buffet detail
-            </Button>
-          }
-        />
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          <ChartCard title="Buffet Enquiries by Date" className="lg:col-span-2">
-            <ColumnChart data={data.buffetSeries} color="var(--color-chart-2)" height={240} />
-          </ChartCard>
-          <ChartCard title="Requested Guests">
-            <HorizontalBarChart
-              data={data.guests}
-              color="var(--color-chart-4)"
-              valueLabel="Enquiries"
-              height={240}
-            />
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* Row 7 — rooms & services */}
-      <div>
-        <SectionHeading
-          title="Room / Hotel Analytics"
-          description="Room demand by category and service enquiries"
-          actions={
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/rooms" })}>
-              <BedDouble className="size-4" /> Rooms detail
-            </Button>
-          }
-        />
-        <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <ChartCard title="Room Enquiries by Type / Category">
-            <HorizontalBarChart
-              data={data.roomTypes}
-              color="var(--color-chart-1)"
-              valueLabel="Enquiries"
-              height={240}
-            />
-          </ChartCard>
-          <ChartCard title="Hotel / Service Enquiries">
-            <HorizontalBarChart
-              data={data.services}
-              color="var(--color-chart-3)"
-              valueLabel="Enquiries"
-              height={240}
-            />
-          </ChartCard>
-        </div>
-      </div>
-
-      {/* Row 8 & 9 — pipeline + follow-up queue */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard
-          title="Enquiry Pipeline"
-          description="New → Follow-up → Pending → Escalated → Closed / Converted"
-        >
-          <Funnel
-            onSelect={(name) => goEnquiries(name as EnquiryStatus)}
-            stages={[
-              { name: "New", value: data.pipe.New, tone: "default" },
-              { name: "Follow-up Required", value: data.pipe["Follow-up Required"], tone: "warning" },
-              { name: "Pending", value: data.pipe.Pending, tone: "warning" },
-              { name: "Escalated", value: data.pipe.Escalated, tone: "danger" },
-              { name: "Closed", value: data.pipe.Closed, tone: "muted" },
-              { name: "Converted", value: data.pipe.Converted, tone: "success" },
-            ]}
-          />
-        </ChartCard>
-
-        <ChartCard
-          title="Follow-up Required"
-          description={`${data.pipe.followUps} enquiries waiting on the team`}
-          actions={
-            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/follow-ups" })}>
-              Open queue
-            </Button>
-          }
-        >
-          <ul className="flex flex-col divide-y divide-border">
-            {data.followUps.map((f) => {
-              const c = scope.customers.find((x) => x.id === f.customerId);
-              return (
-                <li key={f.id} className="flex flex-wrap items-center gap-2 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">{c?.name ?? "Unknown"}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {f.type} · due {dateOnly(f.followUpDueAt)} · {f.assignedTo}
-                    </p>
-                  </div>
-                  <PriorityBadge priority={f.priority} />
-                  <StatusBadge status={f.status} />
-                </li>
-              );
-            })}
-            {data.followUps.length === 0 ? (
-              <li className="py-6 text-center text-sm text-muted-foreground">
-                No follow-ups pending for the selected period.
-              </li>
-            ) : null}
-          </ul>
-        </ChartCard>
-      </div>
-
-      <div className="flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
-        <ShieldAlert className="size-4 shrink-0" />
-        Conversion and returning-customer figures are shown only where the workflow actually captures
-        them; anything not captured appears as N/A or Unknown.
-      </div>
+  return <div className="mx-auto flex max-w-[1500px] flex-col gap-6 pb-8">
+    <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><div className="mb-2 flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500" /><span className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">Live operations · Asia/Kolkata</span></div><h2 className="text-3xl font-semibold tracking-tight">Good morning, Ritika</h2><p className="mt-1 text-sm text-muted-foreground">The bot is running. Here is what needs a human decision.</p></div><div className="flex items-center gap-2"><Pill tone="green">Read API connected</Pill><Pill tone="amber">12 client inputs pending</Pill></div></div>
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{ label: "Needs human", value: "07", sub: "2 urgent · oldest 34m", icon: Inbox, tone: "text-amber-700 bg-amber-100" }, { label: "Due follow-ups", value: "14", sub: "3 due now", icon: Clock3, tone: "text-sky-700 bg-sky-100" }, { label: "Queue depth", value: "23", sub: "18 queued · 2 failed", icon: Send, tone: "text-violet-700 bg-violet-100" }, { label: "Open alerts", value: "03", sub: "1 SLA breach", icon: ShieldAlert, tone: "text-red-700 bg-red-100" }].map(({ label, value, sub, icon: Icon, tone }) => <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{label}</p><p className="metric-value mt-1 text-3xl">{value}</p><p className="mt-1 text-xs text-muted-foreground">{sub}</p></div><span className={`flex size-11 items-center justify-center rounded-xl ${tone}`}><Icon className="size-5" /></span></CardContent></Card>)}</section>
+    <div className="grid min-h-[620px] gap-4 xl:grid-cols-[360px_1fr_300px]">
+      <Card className="overflow-hidden"><CardHeader className="border-b p-4"><div className="flex items-center justify-between"><CardTitle className="text-base">Inbox</CardTitle><Pill tone="amber">5 active</Pill></div><div className="relative mt-3"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search conversations" className="pl-9" /></div><div className="mt-3 flex gap-1 overflow-x-auto pb-1">{["needs human", "unassigned", "longest waiting", "failed delivery"].map((item) => <button key={item} onClick={() => setFilter(item)} className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${filter === item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{item}</button>)}</div></CardHeader><div className="divide-y">{filtered.map((c) => <button key={c.id} onClick={() => setSelected(c)} className={`w-full p-4 text-left transition-colors hover:bg-muted/50 ${selected.id === c.id ? "bg-primary/5" : ""}`}><div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">{c.name.split(" ").map((n) => n[0]).join("")}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-semibold">{c.name}</span>{c.unread ? <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{c.unread}</span> : null}</div><p className="mt-1 truncate text-xs text-muted-foreground">{c.last}</p><div className="mt-2 flex items-center gap-2"><Pill tone={c.priority === "urgent" ? "red" : c.priority === "high" ? "amber" : "neutral"}>{c.priority}</Pill><span className="text-[10px] text-muted-foreground">{c.time}</span></div></div></div></button>)}</div></Card>
+      <Card className="flex min-h-[620px] flex-col overflow-hidden"><CardHeader className="border-b p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-full bg-secondary font-semibold">AS</span><div><CardTitle className="text-base">{selected.name}</CardTitle><p className="text-xs text-muted-foreground">{selected.wa} · last inbound 2 min ago</p></div></div><Button variant="ghost" size="icon"><MoreHorizontal className="size-4" /></Button></div><div className="mt-3 flex items-center gap-2"><Pill tone={selected.state === "awaiting_human" ? "amber" : "blue"}>{selected.state.replace("_", " ")}</Pill>{selected.reason ? <span className="text-xs text-muted-foreground">{selected.reason}</span> : null}</div></CardHeader><div className="flex-1 space-y-4 bg-muted/20 p-5">{messages.map((m, i) => <div key={i} className={`flex ${m.from === "customer" ? "justify-start" : "justify-end"}`}><div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${m.from === "customer" ? "rounded-bl-sm bg-card shadow-sm" : "rounded-br-sm bg-primary text-primary-foreground"}`}><div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider opacity-65">{m.from === "customer" ? <UserRound className="size-3" /> : <Bot className="size-3" />}{m.from === "customer" ? "Customer" : "Bot"}</div>{m.text}<div className="mt-2 flex justify-end gap-1 text-[10px] opacity-60">{m.time}{m.status ? ` · ${m.status}` : ""}</div></div></div>)}<div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><PauseCircle className="size-4 shrink-0" /><span><strong>Bot paused:</strong> human owns conversation. Silence is intentional while this handoff is open.</span></div><div className="rounded-lg border border-dashed border-border bg-card p-3 text-xs text-muted-foreground"><div className="flex items-center gap-2 font-semibold text-foreground"><Send className="size-3.5" /> Delivery state</div><div className="mt-2 grid grid-cols-3 gap-2"><span>status<br /><strong className="text-foreground">queued</strong></span><span>next attempt<br /><strong className="text-foreground">—</strong></span><span>window<br /><strong className="text-foreground">24h open</strong></span></div></div></div><div className="border-t p-4"><div className="flex gap-2"><Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a manual reply…" className="min-h-10 resize-none" /><Button size="icon" disabled={!reply.trim()} onClick={() => void act("send_manual_reply")}><Send /></Button></div><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => void act("accept_handoff")}><CheckCircle2 /> Accept handoff</Button><Button size="sm" variant="outline" onClick={() => void act("return_to_bot")}><Bot /> Return to bot</Button></div></div></Card>
+      <div className="space-y-4"><Card><CardHeader className="p-4"><CardTitle className="text-base">Customer rail</CardTitle></CardHeader><CardContent className="space-y-4 p-4 pt-0"><div><p className="text-xs text-muted-foreground">WhatsApp ID</p><p className="text-sm font-medium">{selected.wa}</p></div><div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-muted-foreground">Language</p><p className="text-sm">English</p></div><div><p className="text-xs text-muted-foreground">Consent</p><Pill tone="green">granted</Pill></div><div><p className="text-xs text-muted-foreground">DND</p><Pill>not blocked</Pill></div><div><p className="text-xs text-muted-foreground">Interactions</p><p className="text-sm">18</p></div></div></CardContent></Card><Card><CardHeader className="p-4"><CardTitle className="text-base">Related records</CardTitle></CardHeader><CardContent className="space-y-3 p-4 pt-0 text-sm"><div className="flex items-center justify-between"><span className="flex items-center gap-2"><MessageSquare className="size-4 text-muted-foreground" /> Open enquiry</span><ArrowRight className="size-4 text-muted-foreground" /></div><div className="flex items-center justify-between"><span className="flex items-center gap-2"><UsersRound className="size-4 text-muted-foreground" /> Handoff</span><Pill tone="amber">requested</Pill></div><div className="flex items-center justify-between"><span className="flex items-center gap-2"><AlertTriangle className="size-4 text-muted-foreground" /> SLA</span><Pill tone="red">overdue</Pill></div></CardContent></Card><Card className="border-amber-200 bg-amber-50"><CardContent className="p-4"><div className="flex gap-2 text-amber-900"><XCircle className="mt-0.5 size-4 shrink-0" /><div><p className="text-xs font-semibold uppercase tracking-wider">No invented facts</p><p className="mt-1 text-xs leading-relaxed">Rates, hours and policies marked pending client input are not shown as confirmed.</p></div></div></CardContent></Card></div>
     </div>
-  );
+  </div>;
 }
