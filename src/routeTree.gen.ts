@@ -10,20 +10,29 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as BuffetRouteImport } from './routes/buffet'
+import { Route as CampaignsRouteImport } from './routes/campaigns'
+import { Route as ConfigRouteImport } from './routes/config'
 import { Route as ConversationsRouteImport } from './routes/conversations'
-import { Route as CustomersRouteImport } from './routes/customers'
 import { Route as EnquiriesRouteImport } from './routes/enquiries'
+import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as FollowUpsRouteImport } from './routes/follow-ups'
+import { Route as HealthRouteImport } from './routes/health'
+import { Route as KnowledgeRouteImport } from './routes/knowledge'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OffersRouteImport } from './routes/offers'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as RoomsRouteImport } from './routes/rooms'
-import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as QueueRouteImport } from './routes/queue'
+import { Route as StaffRouteImport } from './routes/staff'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AlertsRoute = AlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BuffetRoute = BuffetRouteImport.update({
@@ -31,14 +40,19 @@ const BuffetRoute = BuffetRouteImport.update({
   path: '/buffet',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CampaignsRoute = CampaignsRouteImport.update({
+  id: '/campaigns',
+  path: '/campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfigRoute = ConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConversationsRoute = ConversationsRouteImport.update({
   id: '/conversations',
   path: '/conversations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomersRoute = CustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnquiriesRoute = EnquiriesRouteImport.update({
@@ -46,9 +60,24 @@ const EnquiriesRoute = EnquiriesRouteImport.update({
   path: '/enquiries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FeedbackRoute = FeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FollowUpsRoute = FollowUpsRouteImport.update({
   id: '/follow-ups',
   path: '/follow-ups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KnowledgeRoute = KnowledgeRouteImport.update({
+  id: '/knowledge',
+  path: '/knowledge',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -61,116 +90,139 @@ const OffersRoute = OffersRouteImport.update({
   path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
+const QueueRoute = QueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
   getParentRoute: () => rootRouteImport,
 } as any)
-const RoomsRoute = RoomsRouteImport.update({
-  id: '/rooms',
-  path: '/rooms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const StaffRoute = StaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/buffet': typeof BuffetRoute
+  '/campaigns': typeof CampaignsRoute
+  '/config': typeof ConfigRoute
   '/conversations': typeof ConversationsRoute
-  '/customers': typeof CustomersRoute
   '/enquiries': typeof EnquiriesRoute
+  '/feedback': typeof FeedbackRoute
   '/follow-ups': typeof FollowUpsRoute
+  '/health': typeof HealthRoute
+  '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
   '/offers': typeof OffersRoute
-  '/reports': typeof ReportsRoute
-  '/rooms': typeof RoomsRoute
-  '/settings': typeof SettingsRoute
+  '/queue': typeof QueueRoute
+  '/staff': typeof StaffRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/buffet': typeof BuffetRoute
+  '/campaigns': typeof CampaignsRoute
+  '/config': typeof ConfigRoute
   '/conversations': typeof ConversationsRoute
-  '/customers': typeof CustomersRoute
   '/enquiries': typeof EnquiriesRoute
+  '/feedback': typeof FeedbackRoute
   '/follow-ups': typeof FollowUpsRoute
+  '/health': typeof HealthRoute
+  '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
   '/offers': typeof OffersRoute
-  '/reports': typeof ReportsRoute
-  '/rooms': typeof RoomsRoute
-  '/settings': typeof SettingsRoute
+  '/queue': typeof QueueRoute
+  '/staff': typeof StaffRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/alerts': typeof AlertsRoute
   '/buffet': typeof BuffetRoute
+  '/campaigns': typeof CampaignsRoute
+  '/config': typeof ConfigRoute
   '/conversations': typeof ConversationsRoute
-  '/customers': typeof CustomersRoute
   '/enquiries': typeof EnquiriesRoute
+  '/feedback': typeof FeedbackRoute
   '/follow-ups': typeof FollowUpsRoute
+  '/health': typeof HealthRoute
+  '/knowledge': typeof KnowledgeRoute
   '/login': typeof LoginRoute
   '/offers': typeof OffersRoute
-  '/reports': typeof ReportsRoute
-  '/rooms': typeof RoomsRoute
-  '/settings': typeof SettingsRoute
+  '/queue': typeof QueueRoute
+  '/staff': typeof StaffRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/alerts'
     | '/buffet'
+    | '/campaigns'
+    | '/config'
     | '/conversations'
-    | '/customers'
     | '/enquiries'
+    | '/feedback'
     | '/follow-ups'
+    | '/health'
+    | '/knowledge'
     | '/login'
     | '/offers'
-    | '/reports'
-    | '/rooms'
-    | '/settings'
+    | '/queue'
+    | '/staff'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/alerts'
     | '/buffet'
+    | '/campaigns'
+    | '/config'
     | '/conversations'
-    | '/customers'
     | '/enquiries'
+    | '/feedback'
     | '/follow-ups'
+    | '/health'
+    | '/knowledge'
     | '/login'
     | '/offers'
-    | '/reports'
-    | '/rooms'
-    | '/settings'
+    | '/queue'
+    | '/staff'
   id:
     | '__root__'
     | '/'
+    | '/alerts'
     | '/buffet'
+    | '/campaigns'
+    | '/config'
     | '/conversations'
-    | '/customers'
     | '/enquiries'
+    | '/feedback'
     | '/follow-ups'
+    | '/health'
+    | '/knowledge'
     | '/login'
     | '/offers'
-    | '/reports'
-    | '/rooms'
-    | '/settings'
+    | '/queue'
+    | '/staff'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AlertsRoute: typeof AlertsRoute
   BuffetRoute: typeof BuffetRoute
+  CampaignsRoute: typeof CampaignsRoute
+  ConfigRoute: typeof ConfigRoute
   ConversationsRoute: typeof ConversationsRoute
-  CustomersRoute: typeof CustomersRoute
   EnquiriesRoute: typeof EnquiriesRoute
+  FeedbackRoute: typeof FeedbackRoute
   FollowUpsRoute: typeof FollowUpsRoute
+  HealthRoute: typeof HealthRoute
+  KnowledgeRoute: typeof KnowledgeRoute
   LoginRoute: typeof LoginRoute
   OffersRoute: typeof OffersRoute
-  ReportsRoute: typeof ReportsRoute
-  RoomsRoute: typeof RoomsRoute
-  SettingsRoute: typeof SettingsRoute
+  QueueRoute: typeof QueueRoute
+  StaffRoute: typeof StaffRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,11 +234,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/alerts': {
+      id: '/alerts'
+      path: '/alerts'
+      fullPath: '/alerts'
+      preLoaderRoute: typeof AlertsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/buffet': {
       id: '/buffet'
       path: '/buffet'
       fullPath: '/buffet'
       preLoaderRoute: typeof BuffetRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campaigns': {
+      id: '/campaigns'
+      path: '/campaigns'
+      fullPath: '/campaigns'
+      preLoaderRoute: typeof CampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/config': {
+      id: '/config'
+      path: '/config'
+      fullPath: '/config'
+      preLoaderRoute: typeof ConfigRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/conversations': {
@@ -196,13 +269,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConversationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/customers': {
-      id: '/customers'
-      path: '/customers'
-      fullPath: '/customers'
-      preLoaderRoute: typeof CustomersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/enquiries': {
       id: '/enquiries'
       path: '/enquiries'
@@ -210,11 +276,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnquiriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/feedback': {
+      id: '/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof FeedbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/follow-ups': {
       id: '/follow-ups'
       path: '/follow-ups'
       fullPath: '/follow-ups'
       preLoaderRoute: typeof FollowUpsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/knowledge': {
+      id: '/knowledge'
+      path: '/knowledge'
+      fullPath: '/knowledge'
+      preLoaderRoute: typeof KnowledgeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -231,25 +318,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
+    '/queue': {
+      id: '/queue'
+      path: '/queue'
+      fullPath: '/queue'
+      preLoaderRoute: typeof QueueRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/rooms': {
-      id: '/rooms'
-      path: '/rooms'
-      fullPath: '/rooms'
-      preLoaderRoute: typeof RoomsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
+    '/staff': {
+      id: '/staff'
+      path: '/staff'
+      fullPath: '/staff'
+      preLoaderRoute: typeof StaffRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -257,16 +337,20 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AlertsRoute: AlertsRoute,
   BuffetRoute: BuffetRoute,
+  CampaignsRoute: CampaignsRoute,
+  ConfigRoute: ConfigRoute,
   ConversationsRoute: ConversationsRoute,
-  CustomersRoute: CustomersRoute,
   EnquiriesRoute: EnquiriesRoute,
+  FeedbackRoute: FeedbackRoute,
   FollowUpsRoute: FollowUpsRoute,
+  HealthRoute: HealthRoute,
+  KnowledgeRoute: KnowledgeRoute,
   LoginRoute: LoginRoute,
   OffersRoute: OffersRoute,
-  ReportsRoute: ReportsRoute,
-  RoomsRoute: RoomsRoute,
-  SettingsRoute: SettingsRoute,
+  QueueRoute: QueueRoute,
+  StaffRoute: StaffRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

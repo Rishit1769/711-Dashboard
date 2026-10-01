@@ -15,7 +15,7 @@ export async function read711<T>(request: DashboardRequest): Promise<DashboardRe
   return payload;
 }
 export async function write711(action: ActionName, params: Record<string, unknown>, requestKey: string): Promise<ActionResponse> {
-  if (!baseUrl) return { ok: true, action, request_key: requestKey, applied_rows: 1 };
+  if (!baseUrl) return { ok: false, action, request_key: requestKey, error: "workflow connection is not configured" };
   const response = await fetch(`${baseUrl}/api/711/action`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, params, request_key: requestKey }), credentials: "include" });
   const payload = (await response.json()) as ActionResponse;
   if (response.status === 401) window.location.assign("/login");

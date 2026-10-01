@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import {
-  BedDouble,
   ChartPie,
   Cog,
+  Activity,
   FileBarChart,
   LayoutDashboard,
   MessageSquare,
+  Send,
+  ShieldAlert,
   Sparkles,
   Tag,
   UsersRound,
@@ -18,12 +20,16 @@ const NAV = [
   { to: "/conversations", label: "Conversations", icon: MessageSquare },
   { to: "/enquiries", label: "Enquiries", icon: ChartPie },
   { to: "/follow-ups", label: "Follow-ups", icon: Sparkles },
+  { to: "/campaigns", label: "Campaigns", icon: FileBarChart },
   { to: "/offers", label: "Offers", icon: Tag },
   { to: "/buffet", label: "Buffet content", icon: UtensilsCrossed },
-  { to: "/rooms", label: "Rooms & hotel", icon: BedDouble },
-  { to: "/customers", label: "Customers", icon: UsersRound },
-  { to: "/reports", label: "Reports & audit", icon: FileBarChart },
-  { to: "/settings", label: "Config & health", icon: Cog },
+  { to: "/knowledge", label: "Knowledge / RAG", icon: Sparkles },
+  { to: "/queue", label: "Delivery queue", icon: Send },
+  { to: "/alerts", label: "Events & alerts", icon: ShieldAlert },
+  { to: "/feedback", label: "Feedback", icon: MessageSquare },
+  { to: "/health", label: "Health / ops", icon: Activity },
+  { to: "/config", label: "Config", icon: Cog },
+  { to: "/staff", label: "Staff & audit", icon: UsersRound },
 ] as const;
 
 export function SidebarContents({ onNavigate }: { onNavigate?: () => void }) {
