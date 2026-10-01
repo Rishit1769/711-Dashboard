@@ -13,9 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppSidebar } from "@/components/dashboard/AppSidebar";
-import { TopHeader } from "@/components/dashboard/TopHeader";
 import { Toaster } from "@/components/ui/sonner";
-import { AnalyticsProvider } from "@/lib/data/filters";
 
 function NotFoundComponent() {
   return (
@@ -85,8 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "711 Club — Admin Analytics" },
       {
         name: "description",
-        content:
-          "WhatsApp, enquiry and follow-up analytics for the 711 Club management team.",
+        content: "Operational control for the 711 Club WhatsApp bot and staff workflows.",
       },
       { name: "author", content: "711 Club" },
       { property: "og:type", content: "website" },
@@ -128,24 +125,25 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   if (pathname === "/login") {
-    return <QueryClientProvider client={queryClient}><Outlet /><Toaster /></QueryClientProvider>;
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Outlet />
+        <Toaster />
+      </QueryClientProvider>
+    );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AnalyticsProvider>
-        <div className="min-h-screen bg-background">
-          <AppSidebar />
-          <div className="lg:pl-64">
-            <TopHeader />
-            <main className="px-4 py-6 sm:px-6 lg:px-8">
-              {/* Required: nested routes render here. */}
-              <Outlet />
-            </main>
-          </div>
+      <div className="min-h-screen bg-background">
+        <AppSidebar />
+        <div className="lg:pl-64">
+          <main className="px-4 py-6 sm:px-6 lg:px-8">
+            <Outlet />
+          </main>
         </div>
         <Toaster />
-      </AnalyticsProvider>
+      </div>
     </QueryClientProvider>
   );
 }

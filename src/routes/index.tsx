@@ -1,59 +1,237 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, ArrowRight, Bot, CheckCircle2, Clock3, Inbox, MessageSquare, MoreHorizontal, PauseCircle, Search, Send, ShieldAlert, UserRound, UsersRound, XCircle } from "lucide-react";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import {
+  AlertTriangle,
+  Bot,
+  Clock3,
+  FileWarning,
+  Inbox,
+  PauseCircle,
+  RefreshCw,
+  Search,
+  Send,
+  ShieldAlert,
+  UserRound,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { write711 } from "@/lib/api/711-api";
+import { read711, write711 } from "@/lib/api/711-api";
 
-export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "711 Club — Operations" }, { name: "description", content: "Honest operational control for the 711 Club WhatsApp bot." }] }), component: OperationsPage });
+export const Route = createFileRoute("/")({
+  head: () => ({ meta: [{ title: "711 Club — Inbox" }] }),
+  component: InboxPage,
+});
 
-type Conversation = { id: string; name: string; wa: string; state: "awaiting_human" | "bot" | "human" | "closed"; priority: "urgent" | "high" | "normal"; last: string; time: string; reason?: string; unread?: number; assigned?: string };
-const conversations: Conversation[] = [
-  { id: "c-1042", name: "Ananya Sharma", wa: "+91 98765 43102", state: "awaiting_human", priority: "urgent", last: "I need help with a manager for my event booking.", time: "2 min ago", reason: "open handoff · manager_request", unread: 3 },
-  { id: "c-1039", name: "Rohan Mehta", wa: "+91 99100 11872", state: "human", priority: "high", last: "Can you share the buffet details for Sunday?", time: "11 min ago", assigned: "Ritika Menon", unread: 1 },
-  { id: "c-1035", name: "Priya Nair", wa: "+91 98450 22301", state: "bot", priority: "normal", last: "Your feedback helps us improve. How was your visit?", time: "18 min ago", reason: "feedback follow-up queued" },
-  { id: "c-1028", name: "Kabir Kapoor", wa: "+91 98190 44218", state: "awaiting_human", priority: "high", last: "I want to discuss a billing issue.", time: "34 min ago", reason: "handoff_already_open", unread: 2 },
-  { id: "c-1017", name: "Meera Iyer", wa: "+91 99201 74011", state: "closed", priority: "normal", last: "Thank you, that answers my question.", time: "1 hr ago" },
-];
-const messages = [
-  { from: "customer", text: "Hi, I need help with a manager for my event booking.", time: "10:41 AM" },
-  { from: "bot", text: "I’m connecting you with the 711 Club team now. Someone will be with you shortly.", time: "10:41 AM", status: "delivered" },
-  { from: "customer", text: "I need a hall for about 120 guests next Saturday.", time: "10:42 AM" },
-  { from: "bot", text: "A team member will review your request. This enquiry is not a confirmed booking yet.", time: "10:42 AM", status: "delivered" },
-];
-
-function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "green" | "amber" | "red" | "blue" }) {
-  return <span className={`inline-flex items-center rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[.08em] ${tone === "green" ? "bg-emerald-100 text-emerald-800" : tone === "amber" ? "bg-amber-100 text-amber-800" : tone === "red" ? "bg-red-100 text-red-800" : tone === "blue" ? "bg-sky-100 text-sky-800" : "bg-muted text-muted-foreground"}`}>{children}</span>;
-}
-
-function OperationsPage() {
-  const [selected, setSelected] = useState(conversations[0]);
-  const [filter, setFilter] = useState("needs human");
-  const [search, setSearch] = useState("");
+function InboxPage() {
+  const [q, setQ] = useState("");
+  const [connected, setConnected] = useState<boolean | null>(null);
   const [reply, setReply] = useState("");
-  const filtered = useMemo(() => conversations.filter((c) => {
-    const matchesSearch = `${c.name} ${c.wa} ${c.last}`.toLowerCase().includes(search.toLowerCase());
-    if (filter === "needs human") return matchesSearch && c.state === "awaiting_human";
-    if (filter === "unassigned") return matchesSearch && !c.assigned;
-    if (filter === "failed delivery") return matchesSearch && c.id === "c-1028";
-    return matchesSearch;
-  }), [filter, search]);
-  const act = async (action: "accept_handoff" | "return_to_bot" | "send_manual_reply") => {
-    const key = crypto.randomUUID();
-    const response = await write711(action, action === "send_manual_reply" ? { conversation_id: selected.id, body: reply } : { conversation_id: selected.id }, key);
-    if (response.ok) { toast.success(action === "send_manual_reply" ? "Reply enqueued — delivery is still pending." : "Action applied"); setReply(""); } else toast.error(response.error ?? "The action could not be applied");
+  useEffect(() => {
+    let live = true;
+    void read711({ view: "conversations", params: { limit: 50, offset: 0, q } })
+      .then((result) => {
+        if (live) setConnected(result.data !== undefined);
+      })
+      .catch(() => {
+        if (live) setConnected(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [q]);
+  const send = async () => {
+    const result = await write711(
+      "send_manual_reply",
+      { conversation_id: "", body: reply },
+      crypto.randomUUID(),
+    );
+    if (!result.ok) setConnected(false);
+    setReply("");
   };
-  return <div className="mx-auto flex max-w-[1500px] flex-col gap-6 pb-8">
-    <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><div className="mb-2 flex items-center gap-2"><span className="size-2 rounded-full bg-emerald-500" /><span className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">Live operations · Asia/Kolkata</span></div><h2 className="text-3xl font-semibold tracking-tight">Good morning, Ritika</h2><p className="mt-1 text-sm text-muted-foreground">The bot is running. Here is what needs a human decision.</p></div><div className="flex items-center gap-2"><Pill tone="green">Read API connected</Pill><Pill tone="amber">12 client inputs pending</Pill></div></div>
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{ label: "Needs human", value: "07", sub: "2 urgent · oldest 34m", icon: Inbox, tone: "text-amber-700 bg-amber-100" }, { label: "Due follow-ups", value: "14", sub: "3 due now", icon: Clock3, tone: "text-sky-700 bg-sky-100" }, { label: "Queue depth", value: "23", sub: "18 queued · 2 failed", icon: Send, tone: "text-violet-700 bg-violet-100" }, { label: "Open alerts", value: "03", sub: "1 SLA breach", icon: ShieldAlert, tone: "text-red-700 bg-red-100" }].map(({ label, value, sub, icon: Icon, tone }) => <Card key={label}><CardContent className="flex items-center justify-between p-5"><div><p className="text-sm text-muted-foreground">{label}</p><p className="metric-value mt-1 text-3xl">{value}</p><p className="mt-1 text-xs text-muted-foreground">{sub}</p></div><span className={`flex size-11 items-center justify-center rounded-xl ${tone}`}><Icon className="size-5" /></span></CardContent></Card>)}</section>
-    <div className="grid min-h-[620px] gap-4 xl:grid-cols-[360px_1fr_300px]">
-      <Card className="overflow-hidden"><CardHeader className="border-b p-4"><div className="flex items-center justify-between"><CardTitle className="text-base">Inbox</CardTitle><Pill tone="amber">5 active</Pill></div><div className="relative mt-3"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search conversations" className="pl-9" /></div><div className="mt-3 flex gap-1 overflow-x-auto pb-1">{["needs human", "unassigned", "longest waiting", "failed delivery"].map((item) => <button key={item} onClick={() => setFilter(item)} className={`whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium ${filter === item ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{item}</button>)}</div></CardHeader><div className="divide-y">{filtered.map((c) => <button key={c.id} onClick={() => setSelected(c)} className={`w-full p-4 text-left transition-colors hover:bg-muted/50 ${selected.id === c.id ? "bg-primary/5" : ""}`}><div className="flex items-start gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-semibold">{c.name.split(" ").map((n) => n[0]).join("")}</span><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-semibold">{c.name}</span>{c.unread ? <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{c.unread}</span> : null}</div><p className="mt-1 truncate text-xs text-muted-foreground">{c.last}</p><div className="mt-2 flex items-center gap-2"><Pill tone={c.priority === "urgent" ? "red" : c.priority === "high" ? "amber" : "neutral"}>{c.priority}</Pill><span className="text-[10px] text-muted-foreground">{c.time}</span></div></div></div></button>)}</div></Card>
-      <Card className="flex min-h-[620px] flex-col overflow-hidden"><CardHeader className="border-b p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-3"><span className="flex size-10 items-center justify-center rounded-full bg-secondary font-semibold">AS</span><div><CardTitle className="text-base">{selected.name}</CardTitle><p className="text-xs text-muted-foreground">{selected.wa} · last inbound 2 min ago</p></div></div><Button variant="ghost" size="icon"><MoreHorizontal className="size-4" /></Button></div><div className="mt-3 flex items-center gap-2"><Pill tone={selected.state === "awaiting_human" ? "amber" : "blue"}>{selected.state.replace("_", " ")}</Pill>{selected.reason ? <span className="text-xs text-muted-foreground">{selected.reason}</span> : null}</div></CardHeader><div className="flex-1 space-y-4 bg-muted/20 p-5">{messages.map((m, i) => <div key={i} className={`flex ${m.from === "customer" ? "justify-start" : "justify-end"}`}><div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${m.from === "customer" ? "rounded-bl-sm bg-card shadow-sm" : "rounded-br-sm bg-primary text-primary-foreground"}`}><div className="mb-1 flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider opacity-65">{m.from === "customer" ? <UserRound className="size-3" /> : <Bot className="size-3" />}{m.from === "customer" ? "Customer" : "Bot"}</div>{m.text}<div className="mt-2 flex justify-end gap-1 text-[10px] opacity-60">{m.time}{m.status ? ` · ${m.status}` : ""}</div></div></div>)}<div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><PauseCircle className="size-4 shrink-0" /><span><strong>Bot paused:</strong> human owns conversation. Silence is intentional while this handoff is open.</span></div><div className="rounded-lg border border-dashed border-border bg-card p-3 text-xs text-muted-foreground"><div className="flex items-center gap-2 font-semibold text-foreground"><Send className="size-3.5" /> Delivery state</div><div className="mt-2 grid grid-cols-3 gap-2"><span>status<br /><strong className="text-foreground">queued</strong></span><span>next attempt<br /><strong className="text-foreground">—</strong></span><span>window<br /><strong className="text-foreground">24h open</strong></span></div></div></div><div className="border-t p-4"><div className="flex gap-2"><Textarea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Write a manual reply…" className="min-h-10 resize-none" /><Button size="icon" disabled={!reply.trim()} onClick={() => void act("send_manual_reply")}><Send /></Button></div><div className="mt-3 flex flex-wrap gap-2"><Button size="sm" onClick={() => void act("accept_handoff")}><CheckCircle2 /> Accept handoff</Button><Button size="sm" variant="outline" onClick={() => void act("return_to_bot")}><Bot /> Return to bot</Button></div></div></Card>
-      <div className="space-y-4"><Card><CardHeader className="p-4"><CardTitle className="text-base">Customer rail</CardTitle></CardHeader><CardContent className="space-y-4 p-4 pt-0"><div><p className="text-xs text-muted-foreground">WhatsApp ID</p><p className="text-sm font-medium">{selected.wa}</p></div><div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-muted-foreground">Language</p><p className="text-sm">English</p></div><div><p className="text-xs text-muted-foreground">Consent</p><Pill tone="green">granted</Pill></div><div><p className="text-xs text-muted-foreground">DND</p><Pill>not blocked</Pill></div><div><p className="text-xs text-muted-foreground">Interactions</p><p className="text-sm">18</p></div></div></CardContent></Card><Card><CardHeader className="p-4"><CardTitle className="text-base">Related records</CardTitle></CardHeader><CardContent className="space-y-3 p-4 pt-0 text-sm"><div className="flex items-center justify-between"><span className="flex items-center gap-2"><MessageSquare className="size-4 text-muted-foreground" /> Open enquiry</span><ArrowRight className="size-4 text-muted-foreground" /></div><div className="flex items-center justify-between"><span className="flex items-center gap-2"><UsersRound className="size-4 text-muted-foreground" /> Handoff</span><Pill tone="amber">requested</Pill></div><div className="flex items-center justify-between"><span className="flex items-center gap-2"><AlertTriangle className="size-4 text-muted-foreground" /> SLA</span><Pill tone="red">overdue</Pill></div></CardContent></Card><Card className="border-amber-200 bg-amber-50"><CardContent className="p-4"><div className="flex gap-2 text-amber-900"><XCircle className="mt-0.5 size-4 shrink-0" /><div><p className="text-xs font-semibold uppercase tracking-wider">No invented facts</p><p className="mt-1 text-xs leading-relaxed">Rates, hours and policies marked pending client input are not shown as confirmed.</p></div></div></CardContent></Card></div>
+  return (
+    <div className="mx-auto max-w-[1500px] space-y-6 pb-10">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="size-2 rounded-full bg-emerald-500" />
+            <span className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">
+              Inbox · refresh target 5s · Asia/Kolkata
+            </span>
+          </div>
+          <h2 className="text-3xl font-semibold tracking-tight">Inbox</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Conversations that need a human decision, with the bot’s exact pause reason.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={connected ? "default" : "outline"}>
+            {connected ? "Read API connected" : "Waiting for private read API"}
+          </Badge>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw /> Refresh
+          </Button>
+        </div>
+      </div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Needs human", icon: Inbox },
+          { label: "Due follow-ups", icon: Clock3 },
+          { label: "Queue depth", icon: Send },
+          { label: "Open alerts", icon: ShieldAlert },
+        ].map(({ label, icon: Icon }) => (
+          <Card key={label}>
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-muted-foreground">{label}</p>
+                <p className="metric-value mt-1 text-3xl">—</p>
+                <p className="mt-1 text-xs text-muted-foreground">Awaiting read API data</p>
+              </div>
+              <span className="flex size-11 items-center justify-center rounded-xl bg-secondary">
+                <Icon className="size-5" />
+              </span>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+      <div className="grid min-h-[560px] gap-4 xl:grid-cols-[360px_1fr_300px]">
+        <Card className="overflow-hidden">
+          <CardHeader className="border-b p-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Conversation list</CardTitle>
+              <Badge variant="outline">live</Badge>
+            </div>
+            <div className="relative mt-3">
+              <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(event) => setQ(event.target.value)}
+                className="pl-9"
+                placeholder="Search q…"
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1">
+              <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] text-primary-foreground">
+                needs human
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                unassigned
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                longest waiting
+              </span>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+                failed delivery
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="flex flex-col items-center text-center">
+              <FileWarning className="size-8 text-muted-foreground/50" />
+              <p className="mt-3 text-sm font-medium">No conversation data loaded</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                The browser never queries MySQL directly. Configure the server proxy, authenticate a
+                staff session, and this list will populate from the read workflow.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="flex min-h-[560px] flex-col">
+          <CardHeader className="border-b p-4">
+            <CardTitle className="text-base">Thread</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Select a conversation to inspect messages and delivery state.
+            </p>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+            <Bot className="size-9 text-muted-foreground/40" />
+            <p className="mt-3 text-sm font-medium">No thread selected</p>
+            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+              Message history will show content_type, status, provider_ref, errors, and the joined
+              outbound_queue row here.
+            </p>
+            <div className="mt-5 w-full max-w-md rounded-lg border border-dashed p-4 text-left text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 font-semibold text-foreground">
+                <PauseCircle className="size-4" /> Bot-paused reason
+              </div>
+              <p className="mt-2">
+                Exact workflow gate appears here: handoff_already_open, human_owns_conversation,
+                contact_opted_out, rate_limited, or empty_message.
+              </p>
+            </div>
+          </CardContent>
+          <div className="border-t p-4">
+            <div className="flex gap-2">
+              <Textarea
+                value={reply}
+                onChange={(event) => setReply(event.target.value)}
+                placeholder="Write a manual reply…"
+                className="min-h-10 resize-none"
+                disabled={!connected}
+              />
+              <Button
+                size="icon"
+                disabled={!connected || !reply.trim()}
+                onClick={() => void send()}
+              >
+                <Send />
+              </Button>
+            </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Manual replies enqueue work; they do not send WhatsApp directly. Success waits for the
+              workflow response.
+            </p>
+          </div>
+        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader className="p-4">
+              <CardTitle className="text-base">Customer rail</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <UserRound className="size-4" /> Customer details appear after selection.
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <span>
+                  language
+                  <br />
+                  <strong className="text-foreground">—</strong>
+                </span>
+                <span>
+                  consent
+                  <br />
+                  <strong className="text-foreground">—</strong>
+                </span>
+                <span>
+                  DND
+                  <br />
+                  <strong className="text-foreground">—</strong>
+                </span>
+                <span>
+                  interactions
+                  <br />
+                  <strong className="text-foreground">—</strong>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-200 bg-amber-50">
+            <CardContent className="p-4">
+              <div className="flex gap-2 text-amber-900">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <p className="text-xs leading-relaxed">
+                  <strong>No invented facts.</strong> Pending client input renders as not confirmed;
+                  rates, hours and policy are never filled with sample copy.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
-  </div>;
+  );
 }

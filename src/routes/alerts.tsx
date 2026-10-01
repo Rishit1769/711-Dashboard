@@ -1,3 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SpecView } from "@/components/dashboard/SpecView";
-export const Route = createFileRoute("/alerts")({ component: () => <SpecView screenKey="alerts" /> });
+export const Route = createFileRoute("/alerts")({
+  component: () => <SpecView screenKey="alerts" />,
+});

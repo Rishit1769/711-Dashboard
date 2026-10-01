@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, ChevronRight, Clock3, Database, FileWarning, LockKeyhole, RefreshCw, Search, Send, ShieldAlert, UserPlus } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Database,
+  FileWarning,
+  LockKeyhole,
+  RefreshCw,
+  Search,
+  Send,
+  ShieldAlert,
+  UserPlus,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,28 +20,265 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { read711, write711, type ActionName, type DashboardView } from "@/lib/api/711-api";
 
-type Screen = { view: DashboardView; title: string; description: string; action?: ActionName; actionLabel?: string; columns: string[]; empty: string; warning?: string };
+type Screen = {
+  view: DashboardView;
+  title: string;
+  description: string;
+  action?: ActionName;
+  actionLabel?: string;
+  columns: string[];
+  empty: string;
+  warning?: string;
+};
 const screens: Record<string, Screen> = {
-  conversations: { view: "conversations", title: "Conversations", description: "Every customer conversation, its state, and why the bot is silent.", columns: ["Customer", "State", "Priority", "Last inbound", "Assigned"], empty: "No conversations returned by the read API." },
-  enquiries: { view: "enquiries", title: "Enquiries", description: "Operational demand, not bookings. Statuses mirror the stored enum values.", columns: ["Type", "Status", "Interest", "Preferred date", "Owner"], empty: "No enquiries returned by the read API.", warning: "Enquiry ≠ booking. This view never uses confirmed-booking language." },
-  followups: { view: "followups", title: "Follow-ups", description: "Due, claimed, failed and completed follow-ups with the policy that governs each one.", columns: ["Type", "Status", "Due at", "Attempt", "Last error"], empty: "No follow-ups returned by the read API.", action: "cancel_followup", actionLabel: "Cancel selected follow-up" },
-  campaigns: { view: "campaigns", title: "Campaigns", description: "Approval, schedule, recipient outcomes and the dispatcher claim scope.", columns: ["Campaign", "Status", "Scheduled", "Recipients", "Exclusions"], empty: "No campaigns returned by the read API.", warning: "Dispatch claim scope is restricted to the allowlisted test recipient. Queued rows with 0 attempts are expected." },
-  offers: { view: "offers", title: "Offers", description: "Content is only actionable when it is confirmed by the workflow config.", columns: ["Code", "Title", "Category", "Validity", "Content state"], empty: "No offers returned by the read API.", warning: "pending_client_input is shown as not confirmed; no rate or policy is invented." },
-  buffet: { view: "buffet", title: "Buffet content", description: "Publish only content that is not waiting for client input.", columns: ["Service date", "Time", "Price", "Published", "Content state"], empty: "No buffet instances returned by the read API.", action: "publish_buffet", actionLabel: "Publish selected buffet", warning: "Publishing is blocked while content_state is pending_client_input." },
-  knowledge: { view: "knowledge", title: "Knowledge / RAG", description: "Source status, indexing retry windows, vector health and retrieval proof.", columns: ["Source", "Type", "Status", "Chunks", "Last indexed"], empty: "No knowledge sources returned by the read API.", warning: "A Google Doc external_ref is a document ID, not a URL. Retrieval testing is the proof of usefulness." },
-  queue: { view: "queue", title: "Delivery queue", description: "Outbound work is enqueued first; only Meta callbacks mean delivered.", columns: ["Message", "Status", "Attempts", "Next attempt", "Last error"], empty: "No outbound queue rows returned by the read API.", action: "retry_message", actionLabel: "Retry selected message", warning: "Queued and sent are not delivered. Deferred sends must include next_attempt_at and their rule." },
-  alerts: { view: "alerts", title: "Events & alerts", description: "One deduped row represents one failure class in its hourly window, not one occurrence.", columns: ["Type", "Priority", "Title", "Due at", "Status"], empty: "No alerts returned by the read API.", action: "resolve_event", actionLabel: "Resolve selected event" },
-  feedback: { view: "feedback", title: "Feedback", description: "Feedback and negative-feedback events are linked in both directions.", columns: ["Rating", "Visit type", "Negative", "Request ref", "Enquiry"], empty: "No feedback returned by the read API." },
-  health: { view: "health_deep", title: "Health / ops", description: "Timer liveness, workflow versions, channel credentials, queue and RAG health.", columns: ["Check", "Current state", "Last observed", "Expected", "Details"], empty: "No health data returned by the read API.", warning: "A green dispatcher with no work is not enough: timer liveness is shown separately." },
-  config: { view: "config", title: "Config", description: "Editable config is workflow-owned. Client blockers remain locked until supplied.", columns: ["Key", "Content state", "Editable", "Last updated", "Value"], empty: "No config rows returned by the read API.", warning: "pending_client_input means not confirmed. Locked rows cannot be invented in the UI." },
-  staff: { view: "staff", title: "Staff & audit", description: "Admin-managed staff and an auditable record of every action.", columns: ["Staff", "Role", "Active", "Last login", "Actions"], empty: "No staff rows returned by the read API.", action: "assign_enquiry", actionLabel: "Admin actions" },
+  conversations: {
+    view: "conversations",
+    title: "Conversations",
+    description: "Every customer conversation, its state, and why the bot is silent.",
+    columns: ["Customer", "State", "Priority", "Last inbound", "Assigned"],
+    empty: "No conversations returned by the read API.",
+  },
+  enquiries: {
+    view: "enquiries",
+    title: "Enquiries",
+    description: "Operational demand, not bookings. Statuses mirror the stored enum values.",
+    columns: ["Type", "Status", "Interest", "Preferred date", "Owner"],
+    empty: "No enquiries returned by the read API.",
+    warning: "Enquiry ≠ booking. This view never uses confirmed-booking language.",
+  },
+  followups: {
+    view: "followups",
+    title: "Follow-ups",
+    description:
+      "Due, claimed, failed and completed follow-ups with the policy that governs each one.",
+    columns: ["Type", "Status", "Due at", "Attempt", "Last error"],
+    empty: "No follow-ups returned by the read API.",
+    action: "cancel_followup",
+    actionLabel: "Cancel selected follow-up",
+  },
+  campaigns: {
+    view: "campaigns",
+    title: "Campaigns",
+    description: "Approval, schedule, recipient outcomes and the dispatcher claim scope.",
+    columns: ["Campaign", "Status", "Scheduled", "Recipients", "Exclusions"],
+    empty: "No campaigns returned by the read API.",
+    warning:
+      "Dispatch claim scope is restricted to the allowlisted test recipient. Queued rows with 0 attempts are expected.",
+  },
+  offers: {
+    view: "offers",
+    title: "Offers",
+    description: "Content is only actionable when it is confirmed by the workflow config.",
+    columns: ["Code", "Title", "Category", "Validity", "Content state"],
+    empty: "No offers returned by the read API.",
+    warning: "pending_client_input is shown as not confirmed; no rate or policy is invented.",
+  },
+  buffet: {
+    view: "buffet",
+    title: "Buffet content",
+    description: "Publish only content that is not waiting for client input.",
+    columns: ["Service date", "Time", "Price", "Published", "Content state"],
+    empty: "No buffet instances returned by the read API.",
+    action: "publish_buffet",
+    actionLabel: "Publish selected buffet",
+    warning: "Publishing is blocked while content_state is pending_client_input.",
+  },
+  knowledge: {
+    view: "knowledge",
+    title: "Knowledge / RAG",
+    description: "Source status, indexing retry windows, vector health and retrieval proof.",
+    columns: ["Source", "Type", "Status", "Chunks", "Last indexed"],
+    empty: "No knowledge sources returned by the read API.",
+    warning:
+      "A Google Doc external_ref is a document ID, not a URL. Retrieval testing is the proof of usefulness.",
+  },
+  queue: {
+    view: "queue",
+    title: "Delivery queue",
+    description: "Outbound work is enqueued first; only Meta callbacks mean delivered.",
+    columns: ["Message", "Status", "Attempts", "Next attempt", "Last error"],
+    empty: "No outbound queue rows returned by the read API.",
+    action: "retry_message",
+    actionLabel: "Retry selected message",
+    warning:
+      "Queued and sent are not delivered. Deferred sends must include next_attempt_at and their rule.",
+  },
+  alerts: {
+    view: "alerts",
+    title: "Events & alerts",
+    description:
+      "One deduped row represents one failure class in its hourly window, not one occurrence.",
+    columns: ["Type", "Priority", "Title", "Due at", "Status"],
+    empty: "No alerts returned by the read API.",
+    action: "resolve_event",
+    actionLabel: "Resolve selected event",
+  },
+  feedback: {
+    view: "feedback",
+    title: "Feedback",
+    description: "Feedback and negative-feedback events are linked in both directions.",
+    columns: ["Rating", "Visit type", "Negative", "Request ref", "Enquiry"],
+    empty: "No feedback returned by the read API.",
+  },
+  health: {
+    view: "health_deep",
+    title: "Health / ops",
+    description: "Timer liveness, workflow versions, channel credentials, queue and RAG health.",
+    columns: ["Check", "Current state", "Last observed", "Expected", "Details"],
+    empty: "No health data returned by the read API.",
+    warning: "A green dispatcher with no work is not enough: timer liveness is shown separately.",
+  },
+  config: {
+    view: "config",
+    title: "Config",
+    description: "Editable config is workflow-owned. Client blockers remain locked until supplied.",
+    columns: ["Key", "Content state", "Editable", "Last updated", "Value"],
+    empty: "No config rows returned by the read API.",
+    warning: "pending_client_input means not confirmed. Locked rows cannot be invented in the UI.",
+  },
+  staff: {
+    view: "staff",
+    title: "Staff & audit",
+    description: "Admin-managed staff and an auditable record of every action.",
+    columns: ["Staff", "Role", "Active", "Last login", "Actions"],
+    empty: "No staff rows returned by the read API.",
+    action: "assign_enquiry",
+    actionLabel: "Admin actions",
+  },
 };
 
 export function SpecView({ screenKey }: { screenKey: string }) {
   const screen = screens[screenKey] ?? screens.conversations;
   const [connected, setConnected] = useState<boolean | null>(null);
   const [q, setQ] = useState("");
-  useEffect(() => { let live = true; void read711({ view: screen.view, params: { limit: 50, offset: 0, q } }).then((result) => { if (live) setConnected(result.data !== undefined); }).catch(() => { if (live) setConnected(false); }); return () => { live = false; }; }, [q, screen.view]);
-  const action = async () => { if (!screen.action) return; const result = await write711(screen.action, { selected_id: "" }, crypto.randomUUID()); setConnected(result.ok ? connected : false); };
-  return <div className="mx-auto max-w-[1400px] space-y-6 pb-10"><div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">711 Club · Asia/Kolkata</p><h2 className="mt-2 text-3xl font-semibold tracking-tight">{screen.title}</h2><p className="mt-1 text-sm text-muted-foreground">{screen.description}</p></div><div className="flex gap-2"><Badge variant={connected ? "default" : "outline"}>{connected ? "Read API connected" : "Read API not connected"}</Badge><Button variant="outline" size="sm" onClick={() => window.location.reload()}><RefreshCw /> Refresh</Button></div></div>{screen.warning ? <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><AlertTriangle className="mt-0.5 size-4 shrink-0" /><span>{screen.warning}</span></div> : null}<Card><CardHeader className="flex-row items-center justify-between border-b p-4"><div className="flex items-center gap-2"><Database className="size-4 text-muted-foreground" /><CardTitle className="text-base">Live records</CardTitle></div><div className="flex gap-2"><div className="relative"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search q…" className="h-9 w-52 pl-9" /></div>{screen.action ? <Button size="sm" onClick={() => void action()}><Send />{screen.actionLabel}</Button> : null}</div></CardHeader><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground"><tr>{screen.columns.map((column) => <th key={column} className="px-4 py-3 font-semibold">{column}</th>)}<th className="px-4 py-3" /></tr></thead><tbody><tr><td colSpan={screen.columns.length + 1} className="px-6 py-16 text-center"><div className="mx-auto flex max-w-md flex-col items-center"><FileWarning className="size-8 text-muted-foreground/50" /><p className="mt-3 text-sm font-medium">{screen.empty}</p><p className="mt-1 text-xs text-muted-foreground">This screen does not fabricate demo records. Configure the Next.js proxy and a valid staff session to load workflow data.</p></div></td></tr></tbody></table></div></Card><div className="grid gap-4 md:grid-cols-3"><Card><CardContent className="p-4"><div className="flex items-center gap-2 text-sm font-semibold"><Clock3 className="size-4 text-muted-foreground" /> Pagination</div><p className="mt-2 text-xs text-muted-foreground">limit 50 · offset 0 · has_more false until the read API responds.</p></CardContent></Card><Card><CardContent className="p-4"><div className="flex items-center gap-2 text-sm font-semibold"><LockKeyhole className="size-4 text-muted-foreground" /> Workflow-owned state</div><p className="mt-2 text-xs text-muted-foreground">The frontend never decides a business transition; actions use one UUID per intent.</p></CardContent></Card><Card><CardContent className="p-4"><div className="flex items-center gap-2 text-sm font-semibold"><CheckCircle2 className="size-4 text-muted-foreground" /> Honest status</div><p className="mt-2 text-xs text-muted-foreground">Delivered means delivered/read callback, not queued or sent.</p></CardContent></Card></div></div>;
+  useEffect(() => {
+    let live = true;
+    void read711({ view: screen.view, params: { limit: 50, offset: 0, q } })
+      .then((result) => {
+        if (live) setConnected(result.data !== undefined);
+      })
+      .catch(() => {
+        if (live) setConnected(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [q, screen.view]);
+  const action = async () => {
+    if (!screen.action) return;
+    const result = await write711(screen.action, { selected_id: "" }, crypto.randomUUID());
+    setConnected(result.ok ? connected : false);
+  };
+  return (
+    <div className="mx-auto max-w-[1400px] space-y-6 pb-10">
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">
+            711 Club · Asia/Kolkata
+          </p>
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight">{screen.title}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{screen.description}</p>
+        </div>
+        <div className="flex gap-2">
+          <Badge variant={connected ? "default" : "outline"}>
+            {connected ? "Read API connected" : "Read API not connected"}
+          </Badge>
+          <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+            <RefreshCw /> Refresh
+          </Button>
+        </div>
+      </div>
+      {screen.warning ? (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>{screen.warning}</span>
+        </div>
+      ) : null}
+      <Card>
+        <CardHeader className="flex-row items-center justify-between border-b p-4">
+          <div className="flex items-center gap-2">
+            <Database className="size-4 text-muted-foreground" />
+            <CardTitle className="text-base">Live records</CardTitle>
+          </div>
+          <div className="flex gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search q…"
+                className="h-9 w-52 pl-9"
+              />
+            </div>
+            {screen.action ? (
+              <Button size="sm" onClick={() => void action()}>
+                <Send />
+                {screen.actionLabel}
+              </Button>
+            ) : null}
+          </div>
+        </CardHeader>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                {screen.columns.map((column) => (
+                  <th key={column} className="px-4 py-3 font-semibold">
+                    {column}
+                  </th>
+                ))}
+                <th className="px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={screen.columns.length + 1} className="px-6 py-16 text-center">
+                  <div className="mx-auto flex max-w-md flex-col items-center">
+                    <FileWarning className="size-8 text-muted-foreground/50" />
+                    <p className="mt-3 text-sm font-medium">{screen.empty}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      This screen does not fabricate demo records. Configure the Next.js proxy and a
+                      valid staff session to load workflow data.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Clock3 className="size-4 text-muted-foreground" /> Pagination
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              limit 50 · offset 0 · has_more false until the read API responds.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <LockKeyhole className="size-4 text-muted-foreground" /> Workflow-owned state
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              The frontend never decides a business transition; actions use one UUID per intent.
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <CheckCircle2 className="size-4 text-muted-foreground" /> Honest status
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Delivered means delivered/read callback, not queued or sent.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }
